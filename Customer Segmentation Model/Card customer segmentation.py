@@ -7,9 +7,9 @@ Created on Mon Aug  3 17:46:29 2020
 
 '''Data Import'''
 import pandas as pd
-client = pd.read_csv('D:/Master/MSBA/Courses/2020 Spring/BAP/Project/NEW/client12.csv')
-mcc = pd.read_csv('D:/Master/MSBA/Courses/2020 Spring/BAP/Project/NEW/mcc.csv', encoding = "unicode_escape" )
-trx = pd.read_csv('D:/Master/MSBA/Courses/2020 Spring/BAP/Project/NEW/trx12.csv', encoding = "unicode_escape")
+client = pd.read_csv('client12.csv')
+mcc = pd.read_csv('mcc.csv', encoding = "unicode_escape" )
+trx = pd.read_csv('trx12.csv', encoding = "unicode_escape")
 
 trx.info(' ')
 trx.describe()
@@ -223,3 +223,28 @@ print("train score:", clf.score(ctrx_dt, ctrx_RFM_k2.RFM_Cluster_1))
 fig, ax = plt.subplots(figsize=(16, 16))
 tree.plot_tree(clf, fontsize=10)
 
+
+
+
+
+
+'''Major Update for new analysis and new models'''
+##Update Industry and RF+10M Model
+mcc_sum = pd.DataFrame(trx.groupby('MCC').agg({
+'ACCT': 'count',
+'TRAMT': 'sum'}).round(0))
+mcc_top = mcc_sum.sort_values("TRAMT", axis=0, ascending=False)[0:10]
+mcc_top = pd.merge(mcc_top, mcc, how='left', on = 'MCC')
+trx_mcc_top = trx[trx['MCC'].isin(mcc_top.MCC)]
+trx_mcc_top = trx_mcc_top[trx_mcc_top['ACCT'].isin(ctrx.CLIENT_ID)]
+acct_mcc = pd.DataFrame(trx_mcc_top.groupby(['ACCT','MCC']).agg({'TRAMT':'sum'}))
+acct_mcc.reset_index(inplace=True)
+acct_mcc_pivot = acct_mcc.pivot(index='ACCT', columns='MCC', values='TRAMT')
+acct_mcc_pivot[np.isnan(acct_mcc_pivot)] = 0
+acct_mcc_pivot.reset_index(inplace=True)
+acct_full = pd.merge(ctrx, acct_mcc_pivot, how='inner', left_on = 'CLIENT_ID', right_on = 'ACCT')
+acct_full = acct_full.drop(columns=['ACCT'])
+order = ['CLIENT_ID', 'Recency', 'Frequency', 'Monetary', 
+         5411,5812,5542,5814,5541,4814,6300,5200,4899,4900,
+         'STATE','CITY','AGE','GENDER','MARITAL','HHIncome']
+acct_full = acct_full[order]
