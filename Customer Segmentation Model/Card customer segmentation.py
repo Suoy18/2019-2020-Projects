@@ -248,3 +248,56 @@ order = ['CLIENT_ID', 'Recency', 'Frequency', 'Monetary',
          5411,5812,5542,5814,5541,4814,6300,5200,4899,4900,
          'STATE','CITY','AGE','GENDER','MARITAL','HHIncome']
 acct_full = acct_full[order]
+m = acct_full.CLIENT_ID.nunique()
+
+##K-Means - RF+10M - 4 Clusters
+import sklearn
+from sklearn.preprocessing import StandardScaler
+acct_full_1 = acct_full[['Recency','Frequency',5411,5812,5542,5814,5541,4814,6300,5200,4899,4900]]
+scaler = StandardScaler()
+scaler.fit(acct_full_1)
+acct_full_1scaled = scaler.transform(acct_full_1)
+
+from sklearn.cluster import KMeans
+# Elbow criterion method
+# Fit KMeans and calculate SSE for each *k*
+sse = {}
+for k in range(2, 11):
+    kmeans = KMeans(n_clusters=k, random_state=1)
+    kmeans.fit(acct_full_1scaled)
+    sse[k] = kmeans.inertia_ # sum of squared distances to closest cluster cente
+# Plot SSE for each *k*
+plt.title('The Elbow Method')
+plt.xlabel('k'); plt.ylabel('SSE')
+sns.pointplot(x=list(sse.keys()), y=list(sse.values()))
+plt.show()
+
+kmeans = KMeans(n_clusters=4, random_state=1)
+kmeans.fit(acct_full_1scaled)
+cluster_labels_kmeans12 = kmeans.labels_
+acct_full = acct_full.assign(kmeans12 = cluster_labels_kmeans12)
+kmeans12_summary = acct_full.groupby(['kmeans12']).agg({
+'Recency': 'median',
+'Frequency': 'median',
+'Monetary': ['median', 'count'],}).round(1)
+kmeans12_summary.columns = ['R median','F median','M median', 'Count']
+kmeans12_summary['Percentage'] = kmeans12_summary.Count/m
+
+import squarify
+plt.figure(figsize=(10, 6))
+squarify.plot(sizes=kmeans12_summary.Count,
+              label=kmeans12_summary.Percentage, alpha=0.6) 
+plt.axis('off') 
+plt.show() 
+
+# Kmeans - RF+10M - 5 Clusters, one cluster is less than 1%
+# kmeans = KMeans(n_clusters=5, random_state=1)
+# kmeans.fit(acct_full_1scaled)
+# cluster_labels_kmeans12 = kmeans.labels_
+# acct_full = acct_full.assign(kmeans12 = cluster_labels_kmeans12)
+# kmeans12_summary = acct_full.groupby(['kmeans12']).agg({
+# 'Recency': 'median',
+# 'Frequency': 'median',
+# 'Monetary': ['median', 'count'],}).round(1)
+# kmeans12_summary.columns = ['R median','F median','M median', 'Count']
+# kmeans12_summary['Percentage'] = kmeans12_summary.Count/m
