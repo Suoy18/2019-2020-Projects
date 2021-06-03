@@ -301,3 +301,39 @@ plt.show()
 # 'Monetary': ['median', 'count'],}).round(1)
 # kmeans12_summary.columns = ['R median','F median','M median', 'Count']
 # kmeans12_summary['Percentage'] = kmeans12_summary.Count/m
+
+##K-Medians - RF+10M - 4 Clusters
+from pyclustering.cluster.kmedians import kmedians
+from pyclustering.cluster import cluster_visualizer
+# Load list of points for cluster analysis.
+from sklearn.decomposition import PCA
+pca = PCA(n_components=2)
+principalComponents = pca.fit_transform(acct_full_1scaled)
+principalDf = pd.DataFrame(data = principalComponents
+             , columns = ['pc1', 'pc2'])
+plt.scatter(principalDf.pc1, principalDf.pc2)
+# Create instance of K-Medians algorithm.
+initial_medians = [[-2,0.1], [0,6], [5,5], [10,10]]
+kmedians_instance = kmedians(principalComponents, initial_medians)
+# Run cluster analysis and obtain results.
+kmedians_instance.process()
+clusters = kmedians_instance.get_clusters()
+df1 = pd.DataFrame(clusters[0],columns=[0])
+df1['group']=0
+df2 = pd.DataFrame(clusters[1],columns=[0])
+df2['group']=1
+df3 = pd.DataFrame(clusters[2],columns=[0])
+df3['group']=2
+df4 = pd.DataFrame(clusters[3],columns=[0])
+df4['group']=3
+dfs = [df1, df2,df3,df4]
+df = pd.concat(dfs)
+acct_full=pd.merge(acct_full,df,how='left',left_on=acct_full.index,right_on=df[0])
+acct_full = acct_full.drop(columns=['key_0',0])
+acct_full=acct_full.rename(columns={'group': 'kmedians12'})
+kmedians12_summary = acct_full.groupby(['kmedians12']).agg({
+'Recency': 'median',
+'Frequency': 'median',
+'Monetary': ['median', 'count'],}).round(1)
+kmedians12_summary.columns = ['R median','F median','M median', 'Count']
+kmedians12_summary['Percentage'] = kmedians12_summary.Count/m
